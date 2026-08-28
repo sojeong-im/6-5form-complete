@@ -7,13 +7,14 @@ type QuestionType = 'text' | 'textarea' | 'single-select' | 'multi-select';
 
 interface Question {
   id: string;
-  section: string;
+  section?: string;
   title: string | ((answers: Record<string, any>) => string);
   subtitle?: string;
   type: QuestionType;
   options?: string[];
   maxSelect?: number;
   placeholder?: string;
+  subQuestion?: Question;
 }
 
 const questions: Question[] = [
@@ -32,12 +33,24 @@ const questions: Question[] = [
   { id: 'q10', section: '공부 & 목표', title: '10. Complete에 들어오면 가장 얻어가고 싶은 것은 무엇인가요?', subtitle: '최대 2개 선택 가능해요.', type: 'multi-select', maxSelect: 2, options: ['꾸준한 공부 습관', '자격증/시험 합격', '공부할 수 있는 환경', '서로 자극받을 수 있는 스터디원', '공부 정보 및 팁 공유', '새로운 대학생들과의 교류', '학기 동안 하나의 목표 완성하기'] },
   
   // [활동 가능 일정]
-  { id: 'q11', section: '활동 가능 일정', title: '11. 대면 정기 스터디 참여가 가능한 요일을 모두 선택해주세요.', type: 'multi-select', options: ['월', '화', '수', '목', '금', '토', '일'] },
-  { id: 'q12', section: '활동 가능 일정', title: '12. 참여하기 편한 시간대를 모두 선택해주세요.', type: 'multi-select', options: ['평일 오전', '평일 오후', '평일 18~20시', '평일 20시 이후', '주말 오전', '주말 오후', '주말 저녁'] },
-  { id: 'q13', section: '활동 가능 일정', title: '13. 온라인 줌 스터디에도 참여할 의향이 있나요?', type: 'single-select', options: ['적극적으로 참여하고 싶어요', '일정이 맞으면 참여하고 싶어요', '대면 스터디 위주로 참여하고 싶어요'] },
+  { 
+    id: 'q11', 
+    section: '활동 가능 일정', 
+    title: '11. 대면 정기 스터디 참여가 가능한 요일을 모두 선택해주세요.', 
+    type: 'multi-select', 
+    options: ['월', '화', '수', '목', '금', '토', '일'],
+    subQuestion: {
+      id: 'q12',
+      title: '참여하기 편한 시간대를 모두 선택해주세요.',
+      subtitle: '해당 요일의 선호 시간대를 골라주세요.',
+      type: 'multi-select',
+      options: ['평일 오전', '평일 오후', '평일 18~20시', '평일 20시 이후', '주말 오전', '주말 오후', '주말 저녁']
+    }
+  },
+  { id: 'q13', section: '활동 가능 일정', title: '12. 온라인 줌 스터디에도 참여할 의향이 있나요?', type: 'single-select', options: ['적극적으로 참여하고 싶어요', '일정이 맞으면 참여하고 싶어요', '대면 스터디 위주로 참여하고 싶어요'] },
   
   // [마지막 질문]
-  { id: 'q14', section: '마지막 질문', title: (ans) => `14. 마지막으로, ${ans.q1 || '지원자'}님이 Complete에 지원하게 된 이유와 각오를 들려주세요!`, subtitle: '“혼자 하면 자꾸 미뤄서 같이 공부하고 싶어요!”처럼 편하게 작성해주셔도 좋습니다.', type: 'textarea', placeholder: '여기에 작성해주세요...' },
+  { id: 'q14', section: '마지막 질문', title: (ans) => `13. 마지막으로, ${ans.q1 || '지원자'}님이 Complete에 지원하게 된 이유와 각오를 들려주세요!`, subtitle: '“혼자 하면 자꾸 미뤄서 같이 공부하고 싶어요!”처럼 편하게 작성해주셔도 좋습니다.', type: 'textarea', placeholder: '여기에 작성해주세요...' },
 ];
 
 function App() {
@@ -46,7 +59,6 @@ function App() {
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [isCompleted, setIsCompleted] = useState(false);
 
-  // 엔터 키를 누르면 다음으로 넘어가기 (텍스트 입력 등에 유용)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Enter' && !e.shiftKey && started && !isCompleted && isAnswered()) {
@@ -103,42 +115,47 @@ function App() {
     }
   };
 
-  const handleAnswer = (val: any) => {
-    setAnswers(prev => ({ ...prev, [questions[currentStep].id]: val }));
+  const handleAnswer = (qId: string, val: any) => {
+    setAnswers(prev => ({ ...prev, [qId]: val }));
   };
 
-  const handleMultiSelect = (option: string, maxSelect?: number) => {
-    const qId = questions[currentStep].id;
+  const handleMultiSelect = (qId: string, option: string, maxSelect?: number) => {
     const currentAnswers = answers[qId] || [];
-    
     if (currentAnswers.includes(option)) {
-      handleAnswer(currentAnswers.filter((item: string) => item !== option));
+      handleAnswer(qId, currentAnswers.filter((item: string) => item !== option));
     } else {
       if (maxSelect && currentAnswers.length >= maxSelect) return;
-      handleAnswer([...currentAnswers, option]);
+      handleAnswer(qId, [...currentAnswers, option]);
     }
   };
 
   const currentQ = questions[currentStep];
   const progress = ((currentStep + 1) / questions.length) * 100;
   
+  const checkAns = (q: Question) => {
+    const ans = answers[q.id];
+    if (q.type === 'text' || q.type === 'textarea') return !!ans && ans.trim().length > 0;
+    if (q.type === 'single-select') return !!ans;
+    if (q.type === 'multi-select') return ans && ans.length > 0;
+    return false;
+  }
+
   const isAnswered = () => {
     if (!currentQ) return false;
-    const ans = answers[currentQ.id];
-    if (currentQ.type === 'text' || currentQ.type === 'textarea') return !!ans && ans.trim().length > 0;
-    if (currentQ.type === 'single-select') return !!ans;
-    if (currentQ.type === 'multi-select') return ans && ans.length > 0;
-    return false;
-  };
-
-  const getTitle = () => {
-    if (typeof currentQ.title === 'function') {
-      return currentQ.title(answers);
+    const mainAnswered = checkAns(currentQ);
+    if (mainAnswered && currentQ.subQuestion) {
+      return checkAns(currentQ.subQuestion);
     }
-    return currentQ.title;
+    return mainAnswered;
   };
 
-  // 배경 장식용 요소를 위한 컴포넌트
+  const getTitle = (q: Question) => {
+    if (typeof q.title === 'function') {
+      return q.title(answers);
+    }
+    return q.title;
+  };
+
   const BackgroundDecorations = () => (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
       <motion.div 
@@ -157,6 +174,95 @@ function App() {
       </motion.div>
     </div>
   );
+
+  const renderInput = (q: Question) => {
+    return (
+      <div className="mt-6">
+        {q.type === 'text' && (
+          <div className="relative group">
+            <input
+              type="text"
+              autoFocus
+              placeholder={q.placeholder}
+              value={answers[q.id] || ''}
+              onChange={(e) => handleAnswer(q.id, e.target.value)}
+              className="w-full bg-transparent border-b-2 border-gray-700 text-3xl py-3 px-1 focus:outline-none focus:border-complete-green transition-colors text-white placeholder-gray-700"
+            />
+            <div className="absolute right-0 bottom-4 text-complete-green opacity-0 group-focus-within:opacity-100 transition-opacity">
+              <span className="text-sm font-bold bg-complete-green/20 px-2 py-1 rounded">Enter ↵</span>
+            </div>
+          </div>
+        )}
+
+        {q.type === 'textarea' && (
+          <textarea
+            autoFocus
+            placeholder={q.placeholder}
+            value={answers[q.id] || ''}
+            onChange={(e) => handleAnswer(q.id, e.target.value)}
+            className="w-full bg-[#1a1a1a] border-2 border-gray-800 rounded-2xl p-5 text-xl min-h-[200px] focus:outline-none focus:border-complete-green transition-colors resize-none shadow-inner"
+          />
+        )}
+
+        {q.type === 'single-select' && (
+          <div className="flex flex-col gap-3">
+            {q.options?.map((opt) => {
+              const isSelected = answers[q.id] === opt;
+              return (
+                <motion.button
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                  key={opt}
+                  onClick={() => { 
+                    handleAnswer(q.id, opt); 
+                    if (!q.subQuestion) setTimeout(handleNext, 400); 
+                  }}
+                  className={`text-left p-5 rounded-2xl border-2 transition-all flex items-center justify-between
+                    ${isSelected ? 'border-complete-green bg-complete-green/10 shadow-[0_0_15px_rgba(163,255,0,0.15)]' : 'border-gray-800 bg-[#1a1a1a] hover:border-gray-600'}
+                  `}
+                >
+                  <span className={`text-xl font-semibold ${isSelected ? 'text-complete-green' : 'text-gray-200'}`}>{opt}</span>
+                  {isSelected && (
+                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
+                      <Check className="w-6 h-6 text-complete-green" />
+                    </motion.div>
+                  )}
+                </motion.button>
+              )
+            })}
+          </div>
+        )}
+
+        {q.type === 'multi-select' && (
+          <div className="flex flex-wrap gap-3">
+            {q.options?.map((opt) => {
+              const currentAnswers = answers[q.id] || [];
+              const isSelected = currentAnswers.includes(opt);
+              const isMaxReached = Boolean(q.maxSelect && !isSelected && currentAnswers.length >= q.maxSelect);
+              
+              return (
+                <motion.button
+                  whileHover={!isMaxReached ? { scale: 1.05 } : {}}
+                  whileTap={!isMaxReached ? { scale: 0.95 } : {}}
+                  key={opt}
+                  disabled={isMaxReached}
+                  onClick={() => handleMultiSelect(q.id, opt, q.maxSelect)}
+                  className={`text-left px-6 py-4 rounded-2xl border-2 transition-all font-semibold text-lg
+                    ${isSelected 
+                      ? 'border-complete-green bg-complete-green text-black shadow-[0_0_15px_rgba(163,255,0,0.3)]' 
+                      : 'border-gray-800 bg-[#1a1a1a] text-gray-300 hover:border-gray-600'}
+                    ${isMaxReached ? 'opacity-40 cursor-not-allowed' : ''}
+                  `}
+                >
+                  {opt}
+                </motion.button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (!started) {
     return (
@@ -238,7 +344,6 @@ function App() {
     <div className="min-h-screen flex flex-col bg-complete-dark relative">
       <BackgroundDecorations />
       
-      {/* Header & Progress */}
       <header className="px-6 py-4 sticky top-0 bg-complete-dark/80 backdrop-blur-md z-50 border-b border-white/5">
         <div className="flex justify-between items-center mb-4 max-w-2xl mx-auto w-full">
           <span className="font-black text-xl tracking-tight text-white flex items-center gap-2">
@@ -258,8 +363,7 @@ function App() {
         </div>
       </header>
 
-      {/* Question Area */}
-      <main className="flex-1 flex flex-col justify-center px-6 py-8 max-w-2xl mx-auto w-full z-10">
+      <main className="flex-1 flex flex-col justify-center px-6 py-12 max-w-2xl mx-auto w-full z-10">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
@@ -267,106 +371,48 @@ function App() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -30 }}
             transition={{ duration: 0.3, type: "spring", bounce: 0.3 }}
-            className="w-full"
+            className="w-full pb-20"
           >
+            {/* 메인 질문 */}
             <h2 className="text-2xl md:text-3xl font-bold mb-3 leading-snug break-keep">
-              {getTitle()}
+              {getTitle(currentQ)}
             </h2>
             {currentQ.subtitle && (
-              <p className="text-gray-400 mb-8 font-medium text-lg">{currentQ.subtitle}</p>
+              <p className="text-gray-400 mb-2 font-medium text-lg">{currentQ.subtitle}</p>
             )}
+            
+            {renderInput(currentQ)}
 
-            <div className="mt-8">
-              {currentQ.type === 'text' && (
-                <div className="relative group">
-                  <input
-                    type="text"
-                    autoFocus
-                    placeholder={currentQ.placeholder}
-                    value={answers[currentQ.id] || ''}
-                    onChange={(e) => handleAnswer(e.target.value)}
-                    className="w-full bg-transparent border-b-2 border-gray-700 text-3xl py-3 px-1 focus:outline-none focus:border-complete-green transition-colors text-white placeholder-gray-700"
-                  />
-                  <div className="absolute right-0 bottom-4 text-complete-green opacity-0 group-focus-within:opacity-100 transition-opacity">
-                    <span className="text-sm font-bold bg-complete-green/20 px-2 py-1 rounded">Enter ↵</span>
-                  </div>
-                </div>
+            {/* 서브 질문 (메인 질문에 답을 했을 때만 표시) */}
+            <AnimatePresence>
+              {currentQ.subQuestion && checkAns(currentQ) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: 'auto' }}
+                  exit={{ opacity: 0, y: -20, height: 0 }}
+                  transition={{ duration: 0.4, type: "spring", bounce: 0.4 }}
+                  className="mt-16 pt-8 border-t border-gray-800"
+                >
+                  <h3 className="text-xl md:text-2xl font-bold mb-2 leading-snug break-keep text-complete-green">
+                    {getTitle(currentQ.subQuestion)}
+                  </h3>
+                  {currentQ.subQuestion.subtitle && (
+                    <p className="text-gray-400 mb-2 font-medium">{currentQ.subQuestion.subtitle}</p>
+                  )}
+                  {renderInput(currentQ.subQuestion)}
+                </motion.div>
               )}
+            </AnimatePresence>
 
-              {currentQ.type === 'textarea' && (
-                <textarea
-                  autoFocus
-                  placeholder={currentQ.placeholder}
-                  value={answers[currentQ.id] || ''}
-                  onChange={(e) => handleAnswer(e.target.value)}
-                  className="w-full bg-[#1a1a1a] border-2 border-gray-800 rounded-2xl p-5 text-xl min-h-[200px] focus:outline-none focus:border-complete-green transition-colors resize-none shadow-inner"
-                />
-              )}
-
-              {currentQ.type === 'single-select' && (
-                <div className="flex flex-col gap-3">
-                  {currentQ.options?.map((opt) => {
-                    const isSelected = answers[currentQ.id] === opt;
-                    return (
-                      <motion.button
-                        whileHover={{ scale: 1.01 }}
-                        whileTap={{ scale: 0.98 }}
-                        key={opt}
-                        onClick={() => { handleAnswer(opt); setTimeout(handleNext, 400); }}
-                        className={`text-left p-5 rounded-2xl border-2 transition-all flex items-center justify-between
-                          ${isSelected ? 'border-complete-green bg-complete-green/10 shadow-[0_0_15px_rgba(163,255,0,0.15)]' : 'border-gray-800 bg-[#1a1a1a] hover:border-gray-600'}
-                        `}
-                      >
-                        <span className={`text-xl font-semibold ${isSelected ? 'text-complete-green' : 'text-gray-200'}`}>{opt}</span>
-                        {isSelected && (
-                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
-                            <Check className="w-6 h-6 text-complete-green" />
-                          </motion.div>
-                        )}
-                      </motion.button>
-                    )
-                  })}
-                </div>
-              )}
-
-              {currentQ.type === 'multi-select' && (
-                <div className="flex flex-wrap gap-3">
-                  {currentQ.options?.map((opt) => {
-                    const currentAnswers = answers[currentQ.id] || [];
-                    const isSelected = currentAnswers.includes(opt);
-                    const isMaxReached = Boolean(currentQ.maxSelect && !isSelected && currentAnswers.length >= currentQ.maxSelect);
-                    
-                    return (
-                      <motion.button
-                        whileHover={!isMaxReached ? { scale: 1.05 } : {}}
-                        whileTap={!isMaxReached ? { scale: 0.95 } : {}}
-                        key={opt}
-                        disabled={isMaxReached}
-                        onClick={() => handleMultiSelect(opt, currentQ.maxSelect)}
-                        className={`text-left px-6 py-4 rounded-2xl border-2 transition-all font-semibold text-lg
-                          ${isSelected 
-                            ? 'border-complete-green bg-complete-green text-black shadow-[0_0_15px_rgba(163,255,0,0.3)]' 
-                            : 'border-gray-800 bg-[#1a1a1a] text-gray-300 hover:border-gray-600'}
-                          ${isMaxReached ? 'opacity-40 cursor-not-allowed' : ''}
-                        `}
-                      >
-                        {opt}
-                      </motion.button>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
           </motion.div>
         </AnimatePresence>
       </main>
 
-      {/* Footer Nav */}
-      <footer className="px-6 py-6 flex justify-between items-center max-w-2xl mx-auto w-full z-50">
+      <footer className="px-6 py-6 flex justify-between items-center max-w-2xl mx-auto w-full z-50 fixed bottom-0 left-0 right-0 bg-gradient-to-t from-complete-dark to-transparent pt-10">
         <button 
           onClick={handlePrev}
           disabled={currentStep === 0}
-          className={`p-4 rounded-full transition-all ${currentStep === 0 ? 'opacity-0 cursor-default' : 'bg-[#1a1a1a] hover:bg-gray-800 text-white border border-white/10'}`}
+          className={`p-4 rounded-full transition-all ${currentStep === 0 ? 'opacity-0 cursor-default' : 'bg-[#1a1a1a] hover:bg-gray-800 text-white border border-white/10 shadow-lg'}`}
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
@@ -379,7 +425,7 @@ function App() {
           className={`flex items-center gap-2 px-8 py-4 rounded-full font-bold text-xl transition-all duration-300
             ${isAnswered() 
               ? 'bg-complete-green text-black hover:bg-[#8ee000] shadow-[0_0_20px_rgba(163,255,0,0.4)]' 
-              : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+              : 'bg-gray-800 text-gray-500 cursor-not-allowed shadow-lg'
             }
           `}
         >
