@@ -214,20 +214,10 @@ function App() {
 
   const BackgroundDecorations = () => (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-      <motion.div 
-        animate={{ y: [0, -20, 0], rotate: [0, 5, 0] }} 
-        transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
-        className="absolute top-20 left-10 text-complete-green opacity-20 text-6xl"
-      >
-        ★
-      </motion.div>
-      <motion.div 
-        animate={{ y: [0, 30, 0], rotate: [0, -10, 0] }} 
-        transition={{ repeat: Infinity, duration: 7, ease: "easeInOut", delay: 1 }}
-        className="absolute bottom-40 right-20 text-complete-green opacity-20 text-5xl"
-      >
-        ✏️
-      </motion.div>
+      <motion.div animate={{ y: [0, -30, 0], rotate: [0, 15, 0] }} transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }} className="absolute top-[10%] left-[10%] text-complete-green opacity-30 text-5xl md:text-7xl">★</motion.div>
+      <motion.div animate={{ y: [0, 40, 0], x: [0, 20, 0], rotate: [0, -20, 0] }} transition={{ repeat: Infinity, duration: 8, ease: "easeInOut", delay: 1 }} className="absolute bottom-[20%] right-[10%] text-complete-green opacity-30 text-6xl md:text-8xl">✏️</motion.div>
+      <motion.div animate={{ x: [0, 50, 0], y: [0, -20, 0] }} transition={{ repeat: Infinity, duration: 10, ease: "linear" }} className="absolute top-[30%] right-[15%] opacity-20 text-5xl">✈️</motion.div>
+      <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.3, 0.1] }} transition={{ repeat: Infinity, duration: 4 }} className="absolute bottom-[15%] left-[20%] text-complete-green text-5xl">✅</motion.div>
     </div>
   );
 
@@ -352,46 +342,62 @@ function App() {
         <div className="absolute inset-0 z-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 50% 0%, #A3FF00 0%, transparent 50%)' }}></div>
         
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="z-10 text-center max-w-md w-full"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, type: 'spring', bounce: 0.4 }}
+          className="z-10 text-center max-w-md w-full relative"
         >
           <motion.div 
             whileHover={{ scale: 1.05 }}
-            className="inline-block px-4 py-1 rounded-full border border-complete-green/30 text-complete-green text-sm font-semibold mb-6 cursor-default shadow-[0_0_15px_rgba(163,255,0,0.2)]"
+            className="inline-block px-5 py-1.5 rounded-full border border-complete-green/40 text-complete-green text-sm font-bold mb-6 cursor-default shadow-[0_0_15px_rgba(163,255,0,0.2)] bg-complete-green/5"
           >
             대학생 연합 자격증 스터디
           </motion.div>
           <motion.h1 
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            transition={{ type: 'spring', bounce: 0.5 }}
-            className="text-5xl md:text-6xl font-black mb-2 tracking-tighter"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-6xl md:text-7xl font-black mb-2 tracking-tighter"
+            style={{ textShadow: '0 0 30px rgba(163,255,0,0.4)' }}
           >
             COMPLETE
           </motion.h1>
-          <h2 className="text-3xl font-bold mb-8 text-complete-green italic">2기 모집</h2>
+          <motion.h2 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-4xl font-bold mb-10 text-complete-green italic"
+          >
+            2기 모집
+          </motion.h2>
           
           <motion.div 
-            whileHover={{ y: -5 }}
-            className="bg-[#1a1a1a] rounded-2xl p-6 mb-8 text-left border border-white/10 shadow-2xl relative"
+            initial={{ rotate: -2, y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            whileHover={{ rotate: 0, scale: 1.02 }}
+            className="bg-[#1a1a1a] rounded-3xl p-8 mb-10 text-left border-2 border-complete-green/20 shadow-[0_0_30px_rgba(163,255,0,0.1)] relative"
           >
-             <div className="absolute -top-3 -right-3 text-3xl">📝</div>
-             <p className="text-gray-300 leading-relaxed text-center font-medium">
+             <div className="absolute -top-5 -right-4 text-4xl transform rotate-12">📝</div>
+             <div className="absolute -bottom-4 -left-4 text-4xl transform -rotate-12">📌</div>
+             <p className="text-gray-200 leading-relaxed text-center font-bold text-lg">
                함께라서 더 완벽하게!<br/>
                Complete와 함께 이번 학기<br/>
-               목표를 달성해봐요 ✨
+               <span className="text-complete-green text-xl inline-block mt-1">목표를 달성해봐요</span> ✨
              </p>
           </motion.div>
 
           <motion.button 
-            whileHover={{ scale: 1.02, backgroundColor: '#8ee000' }}
-            whileTap={{ scale: 0.98 }}
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            whileHover={{ scale: 1.05, backgroundColor: '#8ee000' }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setStarted(true)}
-            className="w-full bg-complete-green text-black font-bold text-lg py-4 rounded-xl transition-colors flex items-center justify-center gap-2 group shadow-[0_0_20px_rgba(163,255,0,0.3)] hover:shadow-[0_0_30px_rgba(163,255,0,0.5)]"
+            className="w-full bg-complete-green text-black font-black text-2xl py-5 rounded-2xl transition-all flex items-center justify-center gap-2 group shadow-[0_0_20px_rgba(163,255,0,0.4)] hover:shadow-[0_0_40px_rgba(163,255,0,0.6)]"
           >
             지원서 작성하기 
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="w-7 h-7 group-hover:translate-x-2 transition-transform" />
           </motion.button>
         </motion.div>
       </div>
