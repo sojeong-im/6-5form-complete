@@ -232,7 +232,7 @@ function App() {
               placeholder={q.placeholder}
               value={answers[q.id] || ''}
               onChange={(e) => handleAnswer(q.id, e.target.value)}
-              className="w-full bg-transparent border-b-2 border-gray-700 text-3xl py-3 px-1 focus:outline-none focus:border-complete-green transition-colors text-white placeholder-gray-700"
+              className="w-full bg-transparent border-b-2 border-gray-700 text-2xl md:text-3xl py-3 px-1 focus:outline-none focus:border-complete-green transition-colors text-white placeholder-gray-700"
             />
             <div className="absolute right-0 bottom-4 text-complete-green opacity-0 group-focus-within:opacity-100 transition-opacity">
               <span className="text-sm font-bold bg-complete-green/20 px-2 py-1 rounded">Enter ↵</span>
@@ -246,12 +246,12 @@ function App() {
               <motion.div 
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="inline-flex items-center gap-4 px-6 py-4 bg-complete-green text-black rounded-full font-bold text-2xl shadow-[0_0_20px_rgba(163,255,0,0.4)]"
+                className="inline-flex items-center gap-3 px-5 md:px-6 py-3 md:py-4 bg-complete-green text-black rounded-full font-bold text-xl md:text-2xl shadow-[0_0_20px_rgba(163,255,0,0.4)]"
               >
                 📍 {answers[q.id]}
                 <button 
                   onClick={() => handleAnswer(q.id, '')}
-                  className="ml-2 w-10 h-10 rounded-full bg-black/20 hover:bg-black/40 flex items-center justify-center transition-colors"
+                  className="ml-2 w-8 h-8 md:w-10 md:h-10 rounded-full bg-black/20 hover:bg-black/40 flex items-center justify-center transition-colors"
                 >
                   ✕
                 </button>
@@ -271,7 +271,7 @@ function App() {
             placeholder={q.placeholder}
             value={answers[q.id] || ''}
             onChange={(e) => handleAnswer(q.id, e.target.value)}
-            className="w-full bg-[#1a1a1a] border-2 border-gray-800 rounded-2xl p-5 text-xl min-h-[200px] focus:outline-none focus:border-complete-green transition-colors resize-none shadow-inner"
+            className="w-full bg-[#1a1a1a] border-2 border-gray-800 rounded-2xl p-4 md:p-5 text-lg md:text-xl min-h-[150px] md:min-h-[200px] focus:outline-none focus:border-complete-green transition-colors resize-none shadow-inner"
           />
         )}
 
@@ -288,14 +288,14 @@ function App() {
                     handleAnswer(q.id, opt); 
                     if (!q.subQuestion) setTimeout(handleNext, 400); 
                   }}
-                  className={`text-left p-5 rounded-2xl border-2 transition-all flex items-center justify-between
+                  className={`text-left p-4 md:p-5 rounded-2xl border-2 transition-all flex items-center justify-between
                     ${isSelected ? 'border-complete-green bg-complete-green/10 shadow-[0_0_15px_rgba(163,255,0,0.15)]' : 'border-gray-800 bg-[#1a1a1a] hover:border-gray-600'}
                   `}
                 >
-                  <span className={`text-xl font-semibold ${isSelected ? 'text-complete-green' : 'text-gray-200'}`}>{opt}</span>
+                  <span className={`text-lg md:text-xl font-semibold ${isSelected ? 'text-complete-green' : 'text-gray-200'}`}>{opt}</span>
                   {isSelected && (
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
-                      <Check className="w-6 h-6 text-complete-green" />
+                      <Check className="w-5 h-5 md:w-6 md:h-6 text-complete-green" />
                     </motion.div>
                   )}
                 </motion.button>
@@ -305,7 +305,7 @@ function App() {
         )}
 
         {q.type === 'multi-select' && (
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 md:gap-3">
             {q.options?.map((opt) => {
               const currentAnswers = answers[q.id] || [];
               const isSelected = currentAnswers.includes(opt);
@@ -318,7 +318,7 @@ function App() {
                   key={opt}
                   disabled={isMaxReached}
                   onClick={() => handleMultiSelect(q.id, opt, q.maxSelect)}
-                  className={`text-left px-6 py-4 rounded-2xl border-2 transition-all font-semibold text-lg
+                  className={`text-left px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl border-2 transition-all font-semibold text-base md:text-lg
                     ${isSelected 
                       ? 'border-complete-green bg-complete-green text-black shadow-[0_0_15px_rgba(163,255,0,0.3)]' 
                       : 'border-gray-800 bg-[#1a1a1a] text-gray-300 hover:border-gray-600'}
@@ -495,13 +495,13 @@ function App() {
         </AnimatePresence>
       </main>
 
-      <footer className="px-6 py-6 flex justify-between items-center max-w-2xl mx-auto w-full z-50 fixed bottom-0 left-0 right-0 bg-gradient-to-t from-complete-dark to-transparent pt-10">
+      <footer className="px-4 md:px-6 py-4 md:py-6 flex justify-between items-center max-w-2xl mx-auto w-full z-50 fixed bottom-0 left-0 right-0 bg-gradient-to-t from-complete-dark to-transparent pt-10">
         <button 
           onClick={handlePrev}
           disabled={currentStep === 0}
-          className={`p-4 rounded-full transition-all ${currentStep === 0 ? 'opacity-0 cursor-default' : 'bg-[#1a1a1a] hover:bg-gray-800 text-white border border-white/10 shadow-lg'}`}
+          className={`p-3 md:p-4 rounded-full transition-all ${currentStep === 0 ? 'opacity-0 cursor-default' : 'bg-[#1a1a1a] hover:bg-gray-800 text-white border border-white/10 shadow-lg'}`}
         >
-          <ChevronLeft className="w-6 h-6" />
+          <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
         </button>
 
         <motion.button 
@@ -509,7 +509,7 @@ function App() {
           whileTap={isAnswered() ? { scale: 0.95 } : {}}
           onClick={handleNext}
           disabled={!isAnswered()}
-          className={`flex items-center gap-2 px-8 py-4 rounded-full font-bold text-xl transition-all duration-300
+          className={`flex items-center gap-2 px-6 md:px-8 py-3 md:py-4 rounded-full font-bold text-lg md:text-xl transition-all duration-300
             ${isAnswered() 
               ? 'bg-complete-green text-black hover:bg-[#8ee000] shadow-[0_0_20px_rgba(163,255,0,0.4)]' 
               : 'bg-gray-800 text-gray-500 cursor-not-allowed shadow-lg'
@@ -517,7 +517,7 @@ function App() {
           `}
         >
           {currentStep === questions.length - 1 ? '제출하기' : '다음으로'} 
-          <ChevronRight className="w-6 h-6" />
+          <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
         </motion.button>
       </footer>
     </div>
