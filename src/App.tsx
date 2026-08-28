@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft, Check, ArrowRight } from 'lucide-react';
 
@@ -226,7 +226,7 @@ function App() {
                   {currentQ.options?.map((opt) => {
                     const currentAnswers = answers[currentQ.id] || [];
                     const isSelected = currentAnswers.includes(opt);
-                    const isMaxReached = currentQ.maxSelect && !isSelected && currentAnswers.length >= currentQ.maxSelect;
+                    const isMaxReached = Boolean(currentQ.maxSelect && !isSelected && currentAnswers.length >= currentQ.maxSelect);
                     
                     return (
                       <button
