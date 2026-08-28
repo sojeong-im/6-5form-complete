@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft, Check, ArrowRight, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-type QuestionType = 'text' | 'textarea' | 'single-select' | 'multi-select';
+type QuestionType = 'text' | 'textarea' | 'single-select' | 'multi-select' | 'station-search';
 
 interface Question {
   id: string;
@@ -23,7 +23,7 @@ const questions: Question[] = [
   { id: 'q2', section: '기본 정보', title: (ans) => `2. 반가워요, ${ans.q1 || '지원자'}님! 나이를 알려주세요.`, type: 'text', placeholder: '23' },
   { id: 'q3', section: '기본 정보', title: '3. 학교 / 학과 / 학년을 알려주세요.', subtitle: '휴학생이라면 함께 작성해주세요.', type: 'text', placeholder: '한국대 / 경영학과 / 3학년' },
   { id: 'q4', section: '기본 정보', title: '4. 연락 가능한 전화번호를 남겨주세요.', type: 'text', placeholder: '010-1234-5678' },
-  { id: 'q5', section: '기본 정보', title: '5. 현재 거주 지역 또는 주로 활동하는 지역을 알려주세요.', subtitle: '예: 마포구 / 홍대·신촌 부근', type: 'text', placeholder: '서대문구 신촌동' },
+  { id: 'q5', section: '기본 정보', title: '5. 주로 활동하는 지하철역을 선택해주세요.', subtitle: '모임 장소 선정을 위해 사용됩니다.', type: 'station-search' },
   
   // [공부 & 목표]
   { id: 'q6', section: '공부 & 목표', title: '6. 현재 준비 중이거나 이번 학기에 공부하고 싶은 분야를 선택해주세요.', subtitle: '여러 개 선택 가능해요.', type: 'multi-select', options: ['자격증', '어학 (토익/오픽/JLPT 등)', '전공 공부', '취업/직무 공부', '공무원·각종 시험', '기타 자기계발 공부'] },
@@ -52,6 +52,62 @@ const questions: Question[] = [
   // [마지막 질문]
   { id: 'q14', section: '마지막 질문', title: (ans) => `13. 마지막으로, ${ans.q1 || '지원자'}님이 Complete에 지원하게 된 이유와 각오를 들려주세요!`, subtitle: '“혼자 하면 자꾸 미뤄서 같이 공부하고 싶어요!”처럼 편하게 작성해주셔도 좋습니다.', type: 'textarea', placeholder: '여기에 작성해주세요...' },
 ];
+
+const seoulStations = [
+  '강남역', '역삼역', '선릉역', '삼성역', '잠실역', '홍대입구역', '신촌역', '이대역', '합정역', 
+  '건대입구역', '성수역', '왕십리역', '서울대입구역', '신림역', '사당역', '혜화역', '안암역', 
+  '회기역', '노원역', '영등포역', '여의도역', '종로3가역', '을지로입구역', '명동역', '서울역', '용산역', '고속터미널역', '교대역', '신도림역', '당산역'
+];
+
+const StationSearch = ({ handleSelect }: { handleSelect: (s: string) => void }) => {
+  const [query, setQuery] = useState('');
+  
+  const filtered = query.trim().length > 0 
+    ? seoulStations.filter(s => s.includes(query))
+    : [];
+
+  return (
+    <div className="w-full relative">
+      <div className="relative group">
+        <div className="absolute left-0 top-3.5 text-gray-400 text-2xl">🔍</div>
+        <input
+          type="text"
+          autoFocus
+          placeholder="예: 강남역, 홍대입구역"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="w-full bg-transparent border-b-2 border-gray-700 text-3xl py-3 pl-12 pr-1 focus:outline-none focus:border-complete-green transition-colors text-white placeholder-gray-700"
+        />
+      </div>
+      
+      {query.length > 0 && (
+        <div className="absolute top-full left-0 w-full mt-4 bg-[#1a1a1a] border border-gray-800 rounded-2xl p-2 shadow-2xl z-50 max-h-[250px] overflow-y-auto">
+          {filtered.length > 0 ? (
+            filtered.map(station => (
+              <button
+                key={station}
+                onClick={() => handleSelect(station)}
+                className="w-full text-left px-5 py-4 hover:bg-gray-800 rounded-xl transition-colors text-xl font-medium"
+              >
+                {station}
+              </button>
+            ))
+          ) : (
+            <div className="px-5 py-4 text-gray-500">
+              "{query}" 역을 추천 목록에서 찾을 수 없습니다.<br/>
+              <button 
+                onClick={() => handleSelect(query + (query.endsWith('역') ? '' : '역'))}
+                className="block mt-4 px-6 py-3 bg-gray-800 rounded-xl text-white hover:bg-gray-700 transition-colors font-bold"
+              >
+                '{query}{query.endsWith('역') ? '' : '역'}' (으)로 직접 입력하기
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function App() {
   const [started, setStarted] = useState(false);
@@ -134,7 +190,7 @@ function App() {
   
   const checkAns = (q: Question) => {
     const ans = answers[q.id];
-    if (q.type === 'text' || q.type === 'textarea') return !!ans && ans.trim().length > 0;
+    if (q.type === 'text' || q.type === 'textarea' || q.type === 'station-search') return !!ans && ans.trim().length > 0;
     if (q.type === 'single-select') return !!ans;
     if (q.type === 'multi-select') return ans && ans.length > 0;
     return false;
@@ -191,6 +247,31 @@ function App() {
             <div className="absolute right-0 bottom-4 text-complete-green opacity-0 group-focus-within:opacity-100 transition-opacity">
               <span className="text-sm font-bold bg-complete-green/20 px-2 py-1 rounded">Enter ↵</span>
             </div>
+          </div>
+        )}
+
+        {q.type === 'station-search' && (
+          <div className="relative mt-4">
+            {answers[q.id] ? (
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="inline-flex items-center gap-4 px-6 py-4 bg-complete-green text-black rounded-full font-bold text-2xl shadow-[0_0_20px_rgba(163,255,0,0.4)]"
+              >
+                📍 {answers[q.id]}
+                <button 
+                  onClick={() => handleAnswer(q.id, '')}
+                  className="ml-2 w-10 h-10 rounded-full bg-black/20 hover:bg-black/40 flex items-center justify-center transition-colors"
+                >
+                  ✕
+                </button>
+              </motion.div>
+            ) : (
+              <StationSearch handleSelect={(station) => {
+                handleAnswer(q.id, station);
+                setTimeout(handleNext, 400);
+              }} />
+            )}
           </div>
         )}
 
