@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronLeft, Check, ArrowRight } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Check, ArrowRight, Sparkles } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
 type QuestionType = 'text' | 'textarea' | 'single-select' | 'multi-select';
 
 interface Question {
   id: string;
   section: string;
-  title: string;
+  title: string | ((answers: Record<string, any>) => string);
   subtitle?: string;
   type: QuestionType;
   options?: string[];
@@ -18,7 +19,7 @@ interface Question {
 const questions: Question[] = [
   // [기본 정보]
   { id: 'q1', section: '기본 정보', title: '1. 이름을 알려주세요.', type: 'text', placeholder: '홍길동' },
-  { id: 'q2', section: '기본 정보', title: '2. 나이를 알려주세요.', type: 'text', placeholder: '23' },
+  { id: 'q2', section: '기본 정보', title: (ans) => `2. 반가워요, ${ans.q1 || '지원자'}님! 나이를 알려주세요.`, type: 'text', placeholder: '23' },
   { id: 'q3', section: '기본 정보', title: '3. 학교 / 학과 / 학년을 알려주세요.', subtitle: '휴학생이라면 함께 작성해주세요.', type: 'text', placeholder: '한국대 / 경영학과 / 3학년' },
   { id: 'q4', section: '기본 정보', title: '4. 연락 가능한 전화번호를 남겨주세요.', type: 'text', placeholder: '010-1234-5678' },
   { id: 'q5', section: '기본 정보', title: '5. 현재 거주 지역 또는 주로 활동하는 지역을 알려주세요.', subtitle: '예: 마포구 / 홍대·신촌 부근', type: 'text', placeholder: '서대문구 신촌동' },
@@ -36,7 +37,7 @@ const questions: Question[] = [
   { id: 'q13', section: '활동 가능 일정', title: '13. 온라인 줌 스터디에도 참여할 의향이 있나요?', type: 'single-select', options: ['적극적으로 참여하고 싶어요', '일정이 맞으면 참여하고 싶어요', '대면 스터디 위주로 참여하고 싶어요'] },
   
   // [마지막 질문]
-  { id: 'q14', section: '마지막 질문', title: '14. Complete에 지원하게 된 이유와 이번 학기 활동에 대한 각오를 자유롭게 작성해주세요.', subtitle: '“혼자 하면 자꾸 미뤄서 같이 공부하고 싶어요!”처럼 편하게 작성해주셔도 좋습니다.', type: 'textarea', placeholder: '여기에 작성해주세요...' },
+  { id: 'q14', section: '마지막 질문', title: (ans) => `14. 마지막으로, ${ans.q1 || '지원자'}님이 Complete에 지원하게 된 이유와 각오를 들려주세요!`, subtitle: '“혼자 하면 자꾸 미뤄서 같이 공부하고 싶어요!”처럼 편하게 작성해주셔도 좋습니다.', type: 'textarea', placeholder: '여기에 작성해주세요...' },
 ];
 
 function App() {
@@ -45,13 +46,55 @@ function App() {
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [isCompleted, setIsCompleted] = useState(false);
 
+  // 엔터 키를 누르면 다음으로 넘어가기 (텍스트 입력 등에 유용)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && !e.shiftKey && started && !isCompleted && isAnswered()) {
+        const currentQ = questions[currentStep];
+        if (currentQ.type !== 'textarea') {
+          e.preventDefault();
+          handleNext();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentStep, started, isCompleted, answers]);
+
   const handleNext = () => {
     if (currentStep < questions.length - 1) {
       setCurrentStep(prev => prev + 1);
     } else {
       setIsCompleted(true);
+      triggerConfetti();
       console.log('Submitted Answers:', answers);
     }
+  };
+
+  const triggerConfetti = () => {
+    const end = Date.now() + 3 * 1000;
+    const colors = ['#A3FF00', '#ffffff', '#333333'];
+
+    (function frame() {
+      confetti({
+        particleCount: 5,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+        colors: colors
+      });
+      confetti({
+        particleCount: 5,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1 },
+        colors: colors
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    }());
   };
 
   const handlePrev = () => {
@@ -80,6 +123,7 @@ function App() {
   const progress = ((currentStep + 1) / questions.length) * 100;
   
   const isAnswered = () => {
+    if (!currentQ) return false;
     const ans = answers[currentQ.id];
     if (currentQ.type === 'text' || currentQ.type === 'textarea') return !!ans && ans.trim().length > 0;
     if (currentQ.type === 'single-select') return !!ans;
@@ -87,9 +131,37 @@ function App() {
     return false;
   };
 
+  const getTitle = () => {
+    if (typeof currentQ.title === 'function') {
+      return currentQ.title(answers);
+    }
+    return currentQ.title;
+  };
+
+  // 배경 장식용 요소를 위한 컴포넌트
+  const BackgroundDecorations = () => (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+      <motion.div 
+        animate={{ y: [0, -20, 0], rotate: [0, 5, 0] }} 
+        transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
+        className="absolute top-20 left-10 text-complete-green opacity-20 text-6xl"
+      >
+        ★
+      </motion.div>
+      <motion.div 
+        animate={{ y: [0, 30, 0], rotate: [0, -10, 0] }} 
+        transition={{ repeat: Infinity, duration: 7, ease: "easeInOut", delay: 1 }}
+        className="absolute bottom-40 right-20 text-complete-green opacity-20 text-5xl"
+      >
+        ✏️
+      </motion.div>
+    </div>
+  );
+
   if (!started) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-complete-dark relative overflow-hidden">
+        <BackgroundDecorations />
         <div className="absolute inset-0 z-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 50% 0%, #A3FF00 0%, transparent 50%)' }}></div>
         
         <motion.div 
@@ -97,28 +169,43 @@ function App() {
           animate={{ opacity: 1, y: 0 }}
           className="z-10 text-center max-w-md w-full"
         >
-          <div className="inline-block px-4 py-1 rounded-full border border-complete-green/30 text-complete-green text-sm font-semibold mb-6">
+          <motion.div 
+            whileHover={{ scale: 1.05 }}
+            className="inline-block px-4 py-1 rounded-full border border-complete-green/30 text-complete-green text-sm font-semibold mb-6 cursor-default shadow-[0_0_15px_rgba(163,255,0,0.2)]"
+          >
             대학생 연합 자격증 스터디
-          </div>
-          <h1 className="text-5xl md:text-6xl font-black mb-2 tracking-tighter">COMPLETE</h1>
+          </motion.div>
+          <motion.h1 
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', bounce: 0.5 }}
+            className="text-5xl md:text-6xl font-black mb-2 tracking-tighter"
+          >
+            COMPLETE
+          </motion.h1>
           <h2 className="text-3xl font-bold mb-8 text-complete-green italic">2기 모집</h2>
           
-          <div className="bg-[#1a1a1a] rounded-2xl p-6 mb-8 text-left border border-white/10 shadow-2xl relative">
+          <motion.div 
+            whileHover={{ y: -5 }}
+            className="bg-[#1a1a1a] rounded-2xl p-6 mb-8 text-left border border-white/10 shadow-2xl relative"
+          >
              <div className="absolute -top-3 -right-3 text-3xl">📝</div>
              <p className="text-gray-300 leading-relaxed text-center font-medium">
                함께라서 더 완벽하게!<br/>
                Complete와 함께 이번 학기<br/>
                목표를 달성해봐요 ✨
              </p>
-          </div>
+          </motion.div>
 
-          <button 
+          <motion.button 
+            whileHover={{ scale: 1.02, backgroundColor: '#8ee000' }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => setStarted(true)}
-            className="w-full bg-complete-green text-black font-bold text-lg py-4 rounded-xl hover:bg-[#8ee000] transition-colors flex items-center justify-center gap-2 group"
+            className="w-full bg-complete-green text-black font-bold text-lg py-4 rounded-xl transition-colors flex items-center justify-center gap-2 group shadow-[0_0_20px_rgba(163,255,0,0.3)] hover:shadow-[0_0_30px_rgba(163,255,0,0.5)]"
           >
             지원서 작성하기 
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </button>
+          </motion.button>
         </motion.div>
       </div>
     );
@@ -127,68 +214,83 @@ function App() {
   if (isCompleted) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-complete-dark">
+        <BackgroundDecorations />
         <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center"
+          initial={{ opacity: 0, scale: 0.5, rotate: -10 }}
+          animate={{ opacity: 1, scale: 1, rotate: 0 }}
+          transition={{ type: 'spring', bounce: 0.6 }}
+          className="text-center z-10"
         >
-          <div className="w-20 h-20 bg-complete-green rounded-full flex items-center justify-center mx-auto mb-6">
-            <Check className="w-10 h-10 text-black" />
+          <div className="w-24 h-24 bg-complete-green rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(163,255,0,0.5)]">
+            <Check className="w-12 h-12 text-black" />
           </div>
-          <h2 className="text-3xl font-bold mb-4">지원이 완료되었습니다!</h2>
-          <p className="text-gray-400">Complete 2기에 지원해주셔서 감사합니다.<br/>결과는 개별 안내해 드릴 예정입니다.</p>
+          <h2 className="text-4xl font-black mb-4">지원이 완료되었습니다!</h2>
+          <p className="text-gray-400 text-lg leading-relaxed">
+            {answers.q1}님, Complete 2기에 지원해주셔서 감사합니다.<br/>
+            좋은 결과로 곧 다시 뵙겠습니다! 💚
+          </p>
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-complete-dark">
+    <div className="min-h-screen flex flex-col bg-complete-dark relative">
+      <BackgroundDecorations />
+      
       {/* Header & Progress */}
-      <header className="px-6 py-4 sticky top-0 bg-complete-dark/90 backdrop-blur-sm z-50">
-        <div className="flex justify-between items-center mb-4">
-          <span className="font-bold text-xl tracking-tight">COMPLETE</span>
-          <span className="text-sm text-gray-400 font-medium">{currentQ.section}</span>
+      <header className="px-6 py-4 sticky top-0 bg-complete-dark/80 backdrop-blur-md z-50 border-b border-white/5">
+        <div className="flex justify-between items-center mb-4 max-w-2xl mx-auto w-full">
+          <span className="font-black text-xl tracking-tight text-white flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-complete-green" /> COMPLETE
+          </span>
+          <span className="text-sm px-3 py-1 bg-white/10 rounded-full text-gray-300 font-medium">
+            {currentQ.section}
+          </span>
         </div>
-        <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
+        <div className="w-full max-w-2xl mx-auto h-1.5 bg-gray-800 rounded-full overflow-hidden">
           <motion.div 
-            className="h-full bg-complete-green"
+            className="h-full bg-gradient-to-r from-green-400 to-complete-green shadow-[0_0_10px_rgba(163,255,0,0.5)]"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
           />
         </div>
       </header>
 
       {/* Question Area */}
-      <main className="flex-1 flex flex-col justify-center px-6 py-8 max-w-2xl mx-auto w-full">
+      <main className="flex-1 flex flex-col justify-center px-6 py-8 max-w-2xl mx-auto w-full z-10">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -30 }}
+            transition={{ duration: 0.3, type: "spring", bounce: 0.3 }}
             className="w-full"
           >
-            <h2 className="text-2xl md:text-3xl font-bold mb-3 leading-snug">
-              {currentQ.title}
+            <h2 className="text-2xl md:text-3xl font-bold mb-3 leading-snug break-keep">
+              {getTitle()}
             </h2>
             {currentQ.subtitle && (
-              <p className="text-gray-400 mb-8 font-medium">{currentQ.subtitle}</p>
+              <p className="text-gray-400 mb-8 font-medium text-lg">{currentQ.subtitle}</p>
             )}
 
             <div className="mt-8">
               {currentQ.type === 'text' && (
-                <input
-                  type="text"
-                  autoFocus
-                  placeholder={currentQ.placeholder}
-                  value={answers[currentQ.id] || ''}
-                  onChange={(e) => handleAnswer(e.target.value)}
-                  onKeyDown={(e) => { if(e.key === 'Enter' && isAnswered()) handleNext() }}
-                  className="w-full bg-transparent border-b-2 border-gray-700 text-2xl py-2 px-1 focus:outline-none focus:border-complete-green transition-colors text-white placeholder-gray-600"
-                />
+                <div className="relative group">
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder={currentQ.placeholder}
+                    value={answers[currentQ.id] || ''}
+                    onChange={(e) => handleAnswer(e.target.value)}
+                    className="w-full bg-transparent border-b-2 border-gray-700 text-3xl py-3 px-1 focus:outline-none focus:border-complete-green transition-colors text-white placeholder-gray-700"
+                  />
+                  <div className="absolute right-0 bottom-4 text-complete-green opacity-0 group-focus-within:opacity-100 transition-opacity">
+                    <span className="text-sm font-bold bg-complete-green/20 px-2 py-1 rounded">Enter ↵</span>
+                  </div>
+                </div>
               )}
 
               {currentQ.type === 'textarea' && (
@@ -197,7 +299,7 @@ function App() {
                   placeholder={currentQ.placeholder}
                   value={answers[currentQ.id] || ''}
                   onChange={(e) => handleAnswer(e.target.value)}
-                  className="w-full bg-[#1a1a1a] border border-gray-800 rounded-xl p-4 text-lg min-h-[150px] focus:outline-none focus:border-complete-green transition-colors resize-none"
+                  className="w-full bg-[#1a1a1a] border-2 border-gray-800 rounded-2xl p-5 text-xl min-h-[200px] focus:outline-none focus:border-complete-green transition-colors resize-none shadow-inner"
                 />
               )}
 
@@ -206,16 +308,22 @@ function App() {
                   {currentQ.options?.map((opt) => {
                     const isSelected = answers[currentQ.id] === opt;
                     return (
-                      <button
+                      <motion.button
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.98 }}
                         key={opt}
-                        onClick={() => { handleAnswer(opt); setTimeout(handleNext, 300); }}
-                        className={`text-left p-4 rounded-xl border-2 transition-all flex items-center justify-between
-                          ${isSelected ? 'border-complete-green bg-complete-green/10' : 'border-gray-800 bg-[#1a1a1a] hover:border-gray-600'}
+                        onClick={() => { handleAnswer(opt); setTimeout(handleNext, 400); }}
+                        className={`text-left p-5 rounded-2xl border-2 transition-all flex items-center justify-between
+                          ${isSelected ? 'border-complete-green bg-complete-green/10 shadow-[0_0_15px_rgba(163,255,0,0.15)]' : 'border-gray-800 bg-[#1a1a1a] hover:border-gray-600'}
                         `}
                       >
-                        <span className={`text-lg font-medium ${isSelected ? 'text-complete-green' : 'text-gray-200'}`}>{opt}</span>
-                        {isSelected && <Check className="w-5 h-5 text-complete-green" />}
-                      </button>
+                        <span className={`text-xl font-semibold ${isSelected ? 'text-complete-green' : 'text-gray-200'}`}>{opt}</span>
+                        {isSelected && (
+                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
+                            <Check className="w-6 h-6 text-complete-green" />
+                          </motion.div>
+                        )}
+                      </motion.button>
                     )
                   })}
                 </div>
@@ -229,19 +337,21 @@ function App() {
                     const isMaxReached = Boolean(currentQ.maxSelect && !isSelected && currentAnswers.length >= currentQ.maxSelect);
                     
                     return (
-                      <button
+                      <motion.button
+                        whileHover={!isMaxReached ? { scale: 1.05 } : {}}
+                        whileTap={!isMaxReached ? { scale: 0.95 } : {}}
                         key={opt}
                         disabled={isMaxReached}
                         onClick={() => handleMultiSelect(opt, currentQ.maxSelect)}
-                        className={`text-left px-5 py-3 rounded-xl border-2 transition-all font-medium text-lg
+                        className={`text-left px-6 py-4 rounded-2xl border-2 transition-all font-semibold text-lg
                           ${isSelected 
-                            ? 'border-complete-green bg-complete-green/10 text-complete-green' 
+                            ? 'border-complete-green bg-complete-green text-black shadow-[0_0_15px_rgba(163,255,0,0.3)]' 
                             : 'border-gray-800 bg-[#1a1a1a] text-gray-300 hover:border-gray-600'}
-                          ${isMaxReached ? 'opacity-50 cursor-not-allowed' : ''}
+                          ${isMaxReached ? 'opacity-40 cursor-not-allowed' : ''}
                         `}
                       >
                         {opt}
-                      </button>
+                      </motion.button>
                     )
                   })}
                 </div>
@@ -252,28 +362,30 @@ function App() {
       </main>
 
       {/* Footer Nav */}
-      <footer className="p-6 flex justify-between items-center bg-complete-dark/90 backdrop-blur-sm">
+      <footer className="px-6 py-6 flex justify-between items-center max-w-2xl mx-auto w-full z-50">
         <button 
           onClick={handlePrev}
           disabled={currentStep === 0}
-          className={`p-3 rounded-full transition-colors ${currentStep === 0 ? 'opacity-30 cursor-not-allowed text-gray-500' : 'bg-gray-800 hover:bg-gray-700 text-white'}`}
+          className={`p-4 rounded-full transition-all ${currentStep === 0 ? 'opacity-0 cursor-default' : 'bg-[#1a1a1a] hover:bg-gray-800 text-white border border-white/10'}`}
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
 
-        <button 
+        <motion.button 
+          whileHover={isAnswered() ? { scale: 1.05 } : {}}
+          whileTap={isAnswered() ? { scale: 0.95 } : {}}
           onClick={handleNext}
           disabled={!isAnswered()}
-          className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold text-lg transition-all
+          className={`flex items-center gap-2 px-8 py-4 rounded-full font-bold text-xl transition-all duration-300
             ${isAnswered() 
-              ? 'bg-complete-green text-black hover:bg-[#8ee000] shadow-[0_0_15px_rgba(163,255,0,0.4)]' 
+              ? 'bg-complete-green text-black hover:bg-[#8ee000] shadow-[0_0_20px_rgba(163,255,0,0.4)]' 
               : 'bg-gray-800 text-gray-500 cursor-not-allowed'
             }
           `}
         >
           {currentStep === questions.length - 1 ? '제출하기' : '다음으로'} 
-          <ChevronRight className="w-5 h-5" />
-        </button>
+          <ChevronRight className="w-6 h-6" />
+        </motion.button>
       </footer>
     </div>
   );
