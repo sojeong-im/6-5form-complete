@@ -22,10 +22,24 @@ interface ApplicationData {
 }
 
 export default function AdminPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
   const [applications, setApplications] = useState<ApplicationData[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordInput === '00347') {
+      setIsAuthenticated(true);
+    } else {
+      alert('비밀번호가 틀렸습니다.');
+      setPasswordInput('');
+    }
+  };
+
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     const fetchApplications = async () => {
       try {
         const q = query(collection(db, "applications"), orderBy("createdAt", "desc"));
@@ -43,12 +57,33 @@ export default function AdminPage() {
     };
 
     fetchApplications();
-  }, []);
+  }, [isAuthenticated]);
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-complete-dark flex items-center justify-center p-6">
+        <form onSubmit={handleLogin} className="bg-[#1a1a1a] p-8 rounded-2xl border border-gray-800 shadow-2xl text-center max-w-sm w-full">
+          <h2 className="text-2xl font-bold text-white mb-6">관리자 로그인</h2>
+          <input
+            type="password"
+            placeholder="비밀번호 입력"
+            value={passwordInput}
+            onChange={(e) => setPasswordInput(e.target.value)}
+            className="w-full bg-complete-dark border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-complete-green mb-6 text-center tracking-widest text-lg"
+            autoFocus
+          />
+          <button type="submit" className="w-full bg-complete-green text-black font-bold py-3 rounded-xl hover:bg-[#8ee000] transition-colors">
+            입장하기
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-complete-dark text-white flex items-center justify-center">
-        <p className="text-2xl text-complete-green font-bold">로딩 중...</p>
+        <p className="text-2xl text-complete-green font-bold">데이터를 불러오는 중...</p>
       </div>
     );
   }
